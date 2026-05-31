@@ -3,21 +3,22 @@ import { useMqtt } from '../mqttContext';
 
 export const NotificationPanel: React.FC = () => {
   const { state } = useMqtt();
-  const logsEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [timeAgo, setTimeAgo] = useState('Just Now');
 
+  // Scroll hanya di dalam panel log, bukan seluruh halaman
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    
-    // reset to just now when we get a new state update
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0; // log terbaru di atas
+    }
     setTimeAgo('Just Now');
-    
+
     const interval = setInterval(() => {
       const seconds = Math.floor((new Date().getTime() - state.lastUpdate.getTime()) / 1000);
       if (seconds < 60) {
-        setTimeAgo(`${seconds} Seconds Ago`);
+        setTimeAgo(${seconds} Seconds Ago);
       } else {
-        setTimeAgo(`${Math.floor(seconds/60)} Minutes Ago`);
+        setTimeAgo(${Math.floor(seconds / 60)} Minutes Ago);
       }
     }, 1000);
     return () => clearInterval(interval);
@@ -26,13 +27,16 @@ export const NotificationPanel: React.FC = () => {
   return (
     <div className="flex-1 bg-white/40 border border-white rounded-[2rem] p-6 backdrop-blur-md overflow-hidden flex flex-col h-full min-h-[250px]">
       <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">Activity Log</h3>
-      
-      <div className="space-y-3 font-mono text-[11px] overflow-y-auto flex-1 pr-2 pb-2">
-        {[...state.logs].reverse().map((log) => {
+
+      <div
+        ref={scrollContainerRef}
+        className="space-y-3 font-mono text-[11px] overflow-y-auto flex-1 pr-2 pb-2"
+      >
+        {state.logs.map((log) => {
           const isError = log.message.toLowerCase().includes('error') || log.message.toLowerCase().includes('fail');
           const isSuccess = log.message.toLowerCase().includes('on') || log.message.toLowerCase().includes('connected');
           const isPink = log.message.toLowerCase().includes('variasi');
-          
+
           let borderColor = 'border-slate-200';
           let timeColor = 'text-slate-400';
           let textColor = 'text-slate-500';
@@ -52,15 +56,14 @@ export const NotificationPanel: React.FC = () => {
           }
 
           return (
-            <div key={log.id} className={`flex gap-3 bg-white/50 p-2.5 rounded-xl border-l-2 ${borderColor}`}>
-              <span className={`font-bold shrink-0 ${timeColor}`}>
+            <div key={log.id} className={flex gap-3 bg-white/50 p-2.5 rounded-xl border-l-2 ${borderColor}}>
+              <span className={font-bold shrink-0 ${timeColor}}>
                 {log.timestamp.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
-              <span className={`break-words ${textColor}`}>{log.message}</span>
+              <span className={break-words ${textColor}}>{log.message}</span>
             </div>
           );
         })}
-        <div ref={logsEndRef} />
       </div>
 
       <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase shrink-0">
